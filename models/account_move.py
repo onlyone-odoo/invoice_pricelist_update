@@ -60,12 +60,19 @@ class AccountMove(models.Model):
     @api.model
     def create(self, vals):
         """Sobreescribimos el create para establecer la lista de precios desde el pedido de venta si no está definida."""
-        record = super(AccountMove, self).create(vals)
-        if not record.pricelist_id and record.invoice_origin:
+        # Si la factura se crea desde un pedido de venta y no tiene pricelist_id, lo obtenemos del pedido
+        if not vals.get("pricelist_id") and vals.get("invoice_origin"):
             sale_order = self.env["sale.order"].search(
-                [("name", "=", record.invoice_origin)], limit=1
+                [("name", "=", vals.get("invoice_origin"))], limit=1
             )
             if sale_order and sale_order.pricelist_id:
-                record.pricelist_id = sale_order.pricelist_id
-                record._update_prices_from_pricelist()
+                vals["pricelist_id"] = sale_order.pricelist_id.id
+
+        # Crear la factura con los valores actualizados
+        record = super(AccountMove, self).create(vals)
+
+        # Si la factura tiene una pricelist_id, recalculamos los precios
+        if record.pricelist_id and record.move_type in ("out_invoice", "out_refund"):
+            record._update_prices_from_pricelist()
+
         return record

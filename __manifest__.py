@@ -1,6 +1,6 @@
 {
     "name": "Invoice Pricelist Update",
-    "version": "15.0.1.0.0",
+    "version": "15.0.2.0.0",
     "depends": ["account", "sale"],
     "author": "Be OnlyOne",
     "maintainers": ["onlyone-odoo"],
