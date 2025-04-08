@@ -11,7 +11,7 @@ class AccountMove(models.Model):
         readonly=False,
         states={"posted": [("readonly", True)]},
         help="Lista de precios (Tarifa) aplicada a la factura.",
-        tracking=True,  # Agregamos seguimiento para registrar cambios en el chatter
+        tracking=True,
     )
 
     @api.onchange("pricelist_id")
@@ -54,6 +54,8 @@ class AccountMove(models.Model):
 
         # Recalcular los impuestos y totales de la factura
         self._recompute_tax_lines()
+        # Forzar la actualización de las líneas de contrapartida (como "deudores por ventas")
+        self._recompute_payment_terms_lines()
 
     @api.model
     def create(self, vals):
