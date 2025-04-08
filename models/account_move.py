@@ -11,6 +11,7 @@ class AccountMove(models.Model):
         readonly=False,
         states={"posted": [("readonly", True)]},
         help="Lista de precios (Tarifa) aplicada a la factura.",
+        tracking=True,  # Agregamos seguimiento para registrar cambios en el chatter
     )
 
     @api.onchange("pricelist_id")
@@ -41,15 +42,18 @@ class AccountMove(models.Model):
             uom_id=False,  # Dejamos que el método use la UoM del producto por defecto
         )
 
-        # Actualizar los precios de las líneas
+        # Actualizar los precios de las líneas y forzar el recálculo de subtotales e impuestos
         for line in self.invoice_line_ids:
             if line.product_id:
                 # Obtener el precio del diccionario retornado por _compute_price_rule
                 price, rule_id = prices.get(line.product_id.id, (0.0, False))
+                # Actualizar el precio unitario
                 line.price_unit = price
+                # Forzar el recálculo de price_subtotal e impuestos en la línea
+                line._onchange_price_subtotal()
 
-        # Recalcular los totales de la factura
-        self._recompute_dynamic_lines(recompute_all_taxes=True)
+        # Recalcular los impuestos y totales de la factura
+        self._recompute_tax_lines()
 
     @api.model
     def create(self, vals):
