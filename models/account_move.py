@@ -71,8 +71,4 @@ class AccountMove(models.Model):
         # Crear la factura con los valores actualizados
         record = super(AccountMove, self).create(vals)
 
-        # Si la factura tiene una pricelist_id, recalculamos los precios
-        if record.pricelist_id and record.move_type in ("out_invoice", "out_refund"):
-            record._update_prices_from_pricelist()
-
         return record
