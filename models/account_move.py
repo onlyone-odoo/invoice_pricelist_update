@@ -21,18 +21,33 @@ class AccountMove(models.Model):
 
     def _update_prices_from_pricelist(self):
         """Recalcula los precios de las líneas de la factura según la lista de precios."""
+        if not self.pricelist_id:
+            return
+
+        # Preparar la lista de productos, cantidades y partner para _compute_price_rule
+        products_qty_partner = [
+            (line.product_id, line.quantity or 1.0, self.partner_id)
+            for line in self.invoice_line_ids
+            if line.product_id
+        ]
+
+        if not products_qty_partner:
+            return
+
+        # Calcular los precios usando _compute_price_rule
+        prices = self.pricelist_id._compute_price_rule(
+            products_qty_partner=products_qty_partner,
+            date=date.today(),  # Usamos la fecha actual, puede ajustarse si es necesario
+            uom_id=False,  # Dejamos que el método use la UoM del producto por defecto
+        )
+
+        # Actualizar los precios de las líneas
         for line in self.invoice_line_ids:
             if line.product_id:
-                # Obtener el precio del producto según la lista de precios usando _get_product_price_rule
-                price, rule_id = self.pricelist_id._get_product_price_rule(
-                    product=line.product_id,
-                    quantity=line.quantity or 1.0,
-                    partner=self.partner_id,
-                    date=date.today(),  # Usamos la fecha actual, puede ajustarse si es necesario
-                    uom_id=line.product_uom_id.id,
-                )
-                # Actualizar el precio unitario de la línea
+                # Obtener el precio del diccionario retornado por _compute_price_rule
+                price, rule_id = prices.get(line.product_id.id, (0.0, False))
                 line.price_unit = price
+
         # Recalcular los totales de la factura
         self._recompute_dynamic_lines(recompute_all_taxes=True)
 
