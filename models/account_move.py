@@ -23,13 +23,13 @@ class AccountMove(models.Model):
         """Recalcula los precios de las líneas de la factura según la lista de precios."""
         for line in self.invoice_line_ids:
             if line.product_id:
-                # En Odoo 15, _get_product_price requiere más parámetros
-                price = self.pricelist_id._get_product_price(
+                # Obtener el precio del producto según la lista de precios usando _get_product_price_rule
+                price, rule_id = self.pricelist_id._get_product_price_rule(
                     product=line.product_id,
-                    quantity=line.quantity,
+                    quantity=line.quantity or 1.0,
                     partner=self.partner_id,
                     date=date.today(),  # Usamos la fecha actual, puede ajustarse si es necesario
-                    uom_id=line.product_uom_id.id,  # Unidad de medida de la línea
+                    uom_id=line.product_uom_id.id,
                 )
                 # Actualizar el precio unitario de la línea
                 line.price_unit = price
